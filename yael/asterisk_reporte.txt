@@ -1,0 +1,120 @@
+Este conjunto de comandos está destinado a instalar y configurar Asterisk, un sistema de PBX de código abierto. Aquí está una explicación de cada paso:
+
+    sudo -i:
+        Esto cambia al usuario root para obtener permisos de superusuario y ejecutar comandos como root.
+
+    apt-get update:
+        Actualiza la lista de paquetes disponibles en los repositorios de software.
+
+    apt-get upgrade:
+        Actualiza los paquetes instalados a las últimas versiones disponibles.
+
+    apt-get install wget build-essential subversion:
+        Instala los paquetes wget, build-essential y subversion necesarios para compilar y descargar software.
+
+    cd ../usr/src/:
+        Cambia al directorio /usr/src/.
+
+    wget http://downloads.asterisk.org/pub/telephony/asterisk/asterisk-18-current.tar.gz:
+        Descarga el archivo tar.gz que contiene la última versión de Asterisk.
+
+    tar zxvf asterisk-18-current.tar.gz:
+        Descomprime el archivo tar.gz descargado.
+
+    cd asterisk-18.21.0:
+        Cambia al directorio recién descomprimido.
+
+    contrib/scripts/get_mp3_source.sh:
+        Ejecuta un script para obtener las fuentes de MP3 necesarias para Asterisk.
+
+    contrib/scripts/install_prereq install:
+        Instala las dependencias necesarias para compilar Asterisk.
+
+    ./configure:
+        Configura el entorno de compilación para Asterisk.
+
+    make menuselect:
+        Permite seleccionar las características que se desean incluir en la compilación de Asterisk.
+
+    make -j2:
+        Compila Asterisk utilizando dos hilos de compilación.
+
+    make install:
+        Instala Asterisk en el sistema.
+
+    make basic-pbx:
+        Crea una configuración básica de PBX para Asterisk.
+
+    make config:
+        Instala los archivos de configuración de Asterisk.
+
+    ldconfig:
+        Actualiza la caché de enlaces dinámicos del sistema.
+
+    adduser --system --group --home /var/lib/asterisk --no-create-home --gecos "Asterisk PBX" asterisk:
+        Crea un usuario de sistema llamado 'asterisk' para ejecutar el servicio de Asterisk.
+
+
+    cd:
+        Cambia de nuevo al directorio /home.
+
+    nano ../etc/default/asterisk:
+        Edita el archivo de configuración para Asterisk y descomenta las líneas AST_USER y AST_GROUP para configurar el usuario y grupo de Asterisk.
+
+    usermod -a -G dialout,audio asterisk:
+        Añade al usuario 'asterisk' a los grupos 'dialout' y 'audio' para permitir el acceso a dispositivos de audio y módems.
+
+    chown -R asterisk: /var/{lib,log,run,spool}/asterisk /usr/lib/asterisk /etc/asterisk:
+        Cambia el propietario y grupo de los archivos y directorios de Asterisk al usuario 'asterisk'.
+
+    chmod -R 750 /var/{lib,log,run,spool}/asterisk /usr/lib/asterisk /etc/asterisk:
+        Establece los permisos de los archivos y directorios de Asterisk para que el usuario 'asterisk' tenga acceso.
+
+    cd ../usr/src/:
+        Cambia de nuevo al directorio /usr/src/.
+
+    wget http://downloads.asterisk.org/pub/telephony/dahdi-linux-complete/dahdi-linux-complete-current.tar.gz:
+        Descarga el archivo tar.gz que contiene la última versión de los controladores DAHDI para Asterisk.
+
+    tar zxvf dahdi-linux-complete-current.tar.gz:
+        Descomprime el archivo tar.gz descargado.
+
+    cd dahdi-linux-complete-3.3.0:
+        Cambia al directorio recién descomprimido.
+
+    apt-get install linux-headers-$(uname -r):
+        Instala los encabezados del kernel para el kernel en uso.
+
+    make:
+        Compila los controladores DAHDI.
+
+    make install:
+        Instala los controladores DAHDI en el sistema.
+
+    make config:
+        Configura los controladores DAHDI.
+
+    cd ..:
+        Cambia de nuevo al directorio /usr/src/.
+
+    wget http://downloads.asterisk.org/pub/telephony/libpri/libpri-1-current.tar.gz:
+        Descarga el archivo tar.gz que contiene la última versión de libpri para Asterisk.
+
+    tar zxvf libpri-1-current.tar.gz:
+        Descomprime el archivo tar.gz descargado.
+
+    cd libpri-1-current
+
+    make all:
+        Compila libpri.
+
+    make install:
+        Instala libpri en el sistema.
+
+    systemctl start asterisk:
+        Inicia el servicio de Asterisk.
+
+    systemctl status asterisk:
+        Muestra el estado del servicio de Asterisk.
+
+Estos comandos están diseñados para configurar un entorno de Asterisk funcional en tu sistema. Asegúrate de seguir las instrucciones cuidadosamente y de tener en cuenta los requisitos y configuraciones específicas de tu sistema antes de ejecutarlos.
