@@ -1,0 +1,110 @@
+import psycopg2
+from datetime import datetime
+import configparser
+
+def leer_configuracion(archivo):
+    config = configparser.ConfigParser()
+    config.read(archivo)
+    return config['database']
+
+def conectar_bd(config_file):
+    try:
+        parametros = leer_configuracion(config_file)
+        conn = psycopg2.connect(
+            dbname=parametros['dbname'],
+            user=parametros['user'],
+            password=parametros['password'],
+            host=parametros['host'],
+            port=parametros['port']
+        )
+        return conn
+    except Exception as e:
+        print(f"Error al conectar a la base de datos: {e}")
+        return None
+
+def contar_tarjetas(cursor):
+    cursor.execute('SELECT COUNT(*) FROM tarjetas')
+    return cursor.fetchone()[0]
+
+def insertar_tarjetas(cursor, tarjetas):
+    cursor.executemany('''
+    INSERT INTO tarjetas (Trole, id_tarjeta, Tipo, Patio, Resguardo)
+    VALUES (%s, %s, %s, %s, %s)
+    ON CONFLICT (id_tarjeta) DO NOTHING
+    ''', tarjetas)
+
+def verificar_tarjeta(cursor, id_tarjeta):
+    cursor.execute('SELECT * FROM tarjetas WHERE id_tarjeta = %s', (id_tarjeta,))
+    return cursor.fetchone()
+
+def actualizar_tarjeta(cursor, id_tarjeta, nuevo_resguardo, fecha_lectura):
+    cursor.execute('''
+    UPDATE tarjetas
+    SET Resguardo = %s, FechaLectura = %s
+    WHERE id_tarjeta = %s
+    ''', (nuevo_resguardo, fecha_lectura, id_tarjeta))
+
+def insertar_lectura(cursor, id_tarjeta, trole, tipo, patio, nuevo_resguardo, fecha_lectura):
+    cursor.execute('''
+    INSERT INTO lecturas (id_tarjeta, Trole, Tipo, Patio, Resguardo, FechaLectura)
+    VALUES (%s, %s, %s, %s, %s, %s)
+    ''', (id_tarjeta, trole, tipo, patio, nuevo_resguardo, fecha_lectura))
+
+def main():
+    config_file = 'config.txt'
+    conn = conectar_bd(config_file)
+    if not conn:
+        return
+    
+    cursor = conn.cursor()
+    
+    tarjetas_iniciales = [
+        ("22001", "0004978112", "Remolque", "Tetepilco", "Si"),
+        ("22002", "0004964545", "Doble Remolque", "Tetepilco", "No"),
+        ("22003", "0011372157", "Doble Remolque", "Aragon", "Si"),
+        ("22004", "0011378900", "Remolque", "Aragon", "Si"),
+        ("22005", "0011409769", "Doble Remolque", "Tetepilco", "No")
+    ]
+    
+    if contar_tarjetas(cursor) != len(tarjetas_iniciales):
+        print("Error: Hay registros adicionales en la base de datos.")
+        cursor.close()
+        conn.close()
+        return
+    
+    insertar_tarjetas(cursor, tarjetas_iniciales)
+    conn.commit()
+
+    try:
+        while True:
+            id_tarjeta_input = input("Ingrese el id_tarjeta a verificar (o 'salir' para terminar): ")
+            
+            if id_tarjeta_input.lower() == 'salir':
+                print("Terminando el programa.")
+                break
+
+            tarjeta_encontrada = verificar_tarjeta(cursor, id_tarjeta_input)
+
+            if tarjeta_encontrada:
+                print("Tarjeta encontrada:", tarjeta_encontrada)
+                resguardo_actual = tarjeta_encontrada[4]
+                nuevo_resguardo = "No" if resguardo_actual == "Si" else "Si"
+                fecha_lectura = datetime.now()
+
+                actualizar_tarjeta(cursor, id_tarjeta_input, nuevo_resguardo, fecha_lectura)
+                insertar_lectura(cursor, id_tarjeta_input, tarjeta_encontrada[0], tarjeta_encontrada[2], tarjeta_encontrada[3], nuevo_resguardo, fecha_lectura)
+                
+                conn.commit()
+                print(f"Trole {'saliendo' if nuevo_resguardo == 'No' else 'entrando'} de Resguardo\n", verificar_tarjeta(cursor, id_tarjeta_input))
+            else:
+                print("Tarjeta no encontrada.")
+    except Exception as e:
+        print(f"Error durante la ejecución: {e}")
+    finally:
+        cursor.close()
+        conn.close()
+        print("Se cerró la conexión a la base de datos.")
+
+if __name__ == "__main__":
+    main()
+
