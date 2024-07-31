@@ -65,15 +65,16 @@ def main():
         ("22004", "0011378900", "Remolque", "Aragon", "Si"),
         ("22005", "0011409769", "Doble Remolque", "Tetepilco", "No")
     ]
+        
+    insertar_tarjetas(cursor, tarjetas_iniciales)
+    conn.commit()
     
     if contar_tarjetas(cursor) != len(tarjetas_iniciales):
-        print("Error: Hay registros adicionales en la base de datos.")
+        print("Error: 500a1")
         cursor.close()
         conn.close()
         return
-    
-    insertar_tarjetas(cursor, tarjetas_iniciales)
-    conn.commit()
+
 
     try:
         while True:
@@ -86,7 +87,7 @@ def main():
             tarjeta_encontrada = verificar_tarjeta(cursor, id_tarjeta_input)
 
             if tarjeta_encontrada:
-                print("Tarjeta encontrada:", tarjeta_encontrada)
+                print("Tarjeta encontrada:", tarjeta_encontrada[1])
                 resguardo_actual = tarjeta_encontrada[4]
                 nuevo_resguardo = "No" if resguardo_actual == "Si" else "Si"
                 fecha_lectura = datetime.now()
@@ -95,7 +96,6 @@ def main():
                 insertar_lectura(cursor, id_tarjeta_input, tarjeta_encontrada[0], tarjeta_encontrada[2], tarjeta_encontrada[3], nuevo_resguardo, fecha_lectura)
                 
                 conn.commit()
-                print(f"Trole {'saliendo' if nuevo_resguardo == 'No' else 'entrando'} de Resguardo\n", verificar_tarjeta(cursor, id_tarjeta_input))
             else:
                 print("Tarjeta no encontrada.")
     except Exception as e:
@@ -104,7 +104,6 @@ def main():
         cursor.close()
         conn.close()
         print("Se cerró la conexión a la base de datos.")
-
+        
 if __name__ == "__main__":
     main()
-
