@@ -1,109 +1,126 @@
+import tkinter as tk
+from tkinter import ttk
 import psycopg2
 from datetime import datetime
-import configparser
 
-def leer_configuracion(archivo):
-    config = configparser.ConfigParser()
-    config.read(archivo)
-    return config['database']
+# Conectar a la base de datos PostgreSQL
+conn = psycopg2.connect(
+    dbname="gestion_acceso_trole",
+    user="miusuario",
+    password="1234",
+    host="localhost",
+    port="5432"
+)
+cursor = conn.cursor()
 
-def conectar_bd(config_file):
-    try:
-        parametros = leer_configuracion(config_file)
-        conn = psycopg2.connect(
-            dbname=parametros['dbname'],
-            user=parametros['user'],
-            password=parametros['password'],
-            host=parametros['host'],
-            port=parametros['port']
-        )
-        return conn
-    except Exception as e:
-        print(f"Error al conectar a la base de datos: {e}")
-        return None
+# Crear la tabla para almacenar las tarjetas, si no existe
+cursor.execute('''
+CREATE TABLE IF NOT EXISTS tarjetas (
+    Trole VARCHAR(255),
+    id_tarjeta VARCHAR(255) PRIMARY KEY,
+    Tipo VARCHAR(255),
+    Patio VARCHAR(255),
+    Resguardo VARCHAR(255),
+    FechaLectura TIMESTAMP
+)
+''')
 
-def contar_tarjetas(cursor):
-    cursor.execute('SELECT COUNT(*) FROM tarjetas')
-    return cursor.fetchone()[0]
+# Crear la tabla para almacenar las lecturas, si no existe
+cursor.execute('''
+CREATE TABLE IF NOT EXISTS lecturas (
+    id SERIAL PRIMARY KEY,
+    id_tarjeta VARCHAR(255),
+    Trole VARCHAR(255),
+    Tipo VARCHAR(255),
+    Patio VARCHAR(255),
+    Resguardo VARCHAR(255),
+    FechaLectura TIMESTAMP,
+    FOREIGN KEY(id_tarjeta) REFERENCES tarjetas(id_tarjeta)
+)
+''')
 
-def insertar_tarjetas(cursor, tarjetas):
-    cursor.executemany('''
-    INSERT INTO tarjetas (Trole, id_tarjeta, Tipo, Patio, Resguardo)
-    VALUES (%s, %s, %s, %s, %s)
-    ON CONFLICT (id_tarjeta) DO NOTHING
-    ''', tarjetas)
+# Datos iniciales (sin la fecha de lectura)
+tarjetas_iniciales = [
+    ("22001", "0004978112", "Remolque", "Tetepilco", "Si"),
+    ("22002", "0004964545", "Doble Remolque", "Tetepilco", "No"),
+    ("22003", "0011372157", "Doble Remolque", "Aragon", "Si"),
+    ("22004", "0011378900", "Remolque", "Aragon", "Si"),
+    ("22005", "0011409769", "Doble Remolque", "Tetepilco", "No")
+]
 
-def verificar_tarjeta(cursor, id_tarjeta):
+# Insertar los datos iniciales en la tabla tarjetas
+cursor.executemany('''
+INSERT INTO tarjetas (Trole, id_tarjeta, Tipo, Patio, Resguardo)
+VALUES (%s, %s, %s, %s, %s)
+ON CONFLICT (id_tarjeta) DO NOTHING
+''', tarjetas_iniciales)
+
+# Confirmar los cambios
+conn.commit()
+
+# Función para verificar el id_tarjeta
+def verificar_tarjeta(id_tarjeta):
     cursor.execute('SELECT * FROM tarjetas WHERE id_tarjeta = %s', (id_tarjeta,))
     return cursor.fetchone()
 
-def actualizar_tarjeta(cursor, id_tarjeta, nuevo_resguardo, fecha_lectura):
-    cursor.execute('''
-    UPDATE tarjetas
-    SET Resguardo = %s, FechaLectura = %s
-    WHERE id_tarjeta = %s
-    ''', (nuevo_resguardo, fecha_lectura, id_tarjeta))
+# Función para obtener todas las tarjetas
+def obtener_tarjetas():
+    cursor.execute('SELECT * FROM tarjetas')
+    return cursor.fetchall()
 
-def insertar_lectura(cursor, id_tarjeta, trole, tipo, patio, nuevo_resguardo, fecha_lectura):
-    cursor.execute('''
-    INSERT INTO lecturas (id_tarjeta, Trole, Tipo, Patio, Resguardo, FechaLectura)
-    VALUES (%s, %s, %s, %s, %s, %s)
-    ''', (id_tarjeta, trole, tipo, patio, nuevo_resguardo, fecha_lectura))
+# Función para obtener todas las lecturas
+def obtener_lecturas():
+    cursor.execute('SELECT * FROM lecturas')
+    return cursor.fetchall()
 
-def main():
-    config_file = 'config.txt'
-    conn = conectar_bd(config_file)
-    if not conn:
-        return
+# Crear la interfaz gráfica
+root = tk.Tk()
+root.title("Gestión de Acceso a Trole")
+
+# Crear los frames
+frame_tarjetas = ttk.LabelFrame(root, text="Tarjetas")
+frame_tarjetas.pack(fill="both", expand="yes", padx=10, pady=10)
+
+frame_lecturas = ttk.LabelFrame(root, text="Lecturas")
+frame_lecturas.pack(fill="both", expand="yes", padx=10, pady=10)
+
+# Crear los Treeviews
+tree_tarjetas = ttk.Treeview(frame_tarjetas, columns=("Trole", "id_tarjeta", "Tipo", "Patio", "Resguardo", "FechaLectura"), show="headings")
+tree_lecturas = ttk.Treeview(frame_lecturas, columns=("id", "id_tarjeta", "Trole", "Tipo", "Patio", "Resguardo", "FechaLectura"), show="headings")
+
+# Definir los encabezados
+for col in tree_tarjetas["columns"]:
+    tree_tarjetas.heading(col, text=col)
+
+for col in tree_lecturas["columns"]:
+    tree_lecturas.heading(col, text=col)
+
+# Colocar los Treeviews
+tree_tarjetas.pack(fill="both", expand=True)
+tree_lecturas.pack(fill="both", expand=True)
+
+# Función para actualizar los Treeviews
+def actualizar_treeviews():
+    # Limpiar los Treeviews
+    for i in tree_tarjetas.get_children():
+        tree_tarjetas.delete(i)
+    for i in tree_lecturas.get_children():
+        tree_lecturas.delete(i)
     
-    cursor = conn.cursor()
-    
-    tarjetas_iniciales = [
-        ("22001", "0004978112", "Remolque", "Tetepilco", "Si"),
-        ("22002", "0004964545", "Doble Remolque", "Tetepilco", "No"),
-        ("22003", "0011372157", "Doble Remolque", "Aragon", "Si"),
-        ("22004", "0011378900", "Remolque", "Aragon", "Si"),
-        ("22005", "0011409769", "Doble Remolque", "Tetepilco", "No")
-    ]
-        
-    insertar_tarjetas(cursor, tarjetas_iniciales)
-    conn.commit()
-    
-    if contar_tarjetas(cursor) != len(tarjetas_iniciales):
-        print("Error: 500a1")
-        cursor.close()
-        conn.close()
-        return
+    # Obtener datos y agregarlos a los Treeviews
+    for row in obtener_tarjetas():
+        tree_tarjetas.insert("", "end", values=row)
+    for row in obtener_lecturas():
+        tree_lecturas.insert("", "end", values=row)
 
+# Botón para actualizar
+btn_actualizar = ttk.Button(root, text="Actualizar", command=actualizar_treeviews)
+btn_actualizar.pack(pady=10)
 
-    try:
-        while True:
-            id_tarjeta_input = input("Ingrese el id_tarjeta a verificar (o 'salir' para terminar): ")
-            
-            if id_tarjeta_input.lower() == 'salir':
-                print("Terminando el programa.")
-                break
+# Iniciar la interfaz gráfica
+actualizar_treeviews()  # Llenar los treeviews al inicio
+root.mainloop()
 
-            tarjeta_encontrada = verificar_tarjeta(cursor, id_tarjeta_input)
-
-            if tarjeta_encontrada:
-                print("Tarjeta encontrada:", tarjeta_encontrada[1])
-                resguardo_actual = tarjeta_encontrada[4]
-                nuevo_resguardo = "No" if resguardo_actual == "Si" else "Si"
-                fecha_lectura = datetime.now()
-
-                actualizar_tarjeta(cursor, id_tarjeta_input, nuevo_resguardo, fecha_lectura)
-                insertar_lectura(cursor, id_tarjeta_input, tarjeta_encontrada[0], tarjeta_encontrada[2], tarjeta_encontrada[3], nuevo_resguardo, fecha_lectura)
-                
-                conn.commit()
-            else:
-                print("Tarjeta no encontrada.")
-    except Exception as e:
-        print(f"Error durante la ejecución: {e}")
-    finally:
-        cursor.close()
-        conn.close()
-        print("Se cerró la conexión a la base de datos.")
-        
-if __name__ == "__main__":
-    main()
+# Cerrar la conexión a la base de datos
+cursor.close()
+conn.close()
