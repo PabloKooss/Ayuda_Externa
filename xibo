@@ -1,40 +1,41 @@
-#########################################
-#        CONFIGURACIÓN DE MYSQL         #
-#########################################
+#!/bin/bash
+# Instalador automático de Xibo CMS en Ubuntu Server 24.04
+# Autor: Pablo + ChatGPT :)
 
-# Contraseña del usuario CMS para MySQL
-MYSQL_PASSWORD=ClaveCms12345678
+set -e
 
-# Contraseña root de MySQL
-MYSQL_ROOT_PASSWORD=RootClave12345678
+echo "=== ACTUALIZANDO SISTEMA ==="
+sudo apt update && sudo apt upgrade -y
 
-#########################################
-#        CONFIGURACIÓN DEL CMS          #
-#########################################
+echo "=== INSTALANDO DEPENDENCIAS ==="
+sudo apt install -y docker.io docker-compose git curl
 
-# Contraseña del usuario administrador de Xibo (usuario: xibo_admin)
-CMS_ADMIN_PASSWORD=Admin12345678
+echo "=== HABILITANDO DOCKER ==="
+sudo systemctl enable docker
+sudo systemctl start docker
+sudo usermod -aG docker $USER
 
-# Puerto en el que Xibo CMS se expondrá
-CMS_PORT=8080
+echo "=== DESCARGANDO XIBO-DOCKER ==="
+if [ ! -d "xibo-docker" ]; then
+    git clone https://github.com/xibosignage/xibo-docker.git
+fi
+cd xibo-docker
 
-#########################################
-#    CONFIGURACIÓN DE CORREO (SMTP)     #
-#########################################
-# Para pruebas locales no es necesario.
-# Si quieres habilitarlo, edita estos valores.
-CMS_SMTP_SERVER=smtp.gmail.com:587
-CMS_SMTP_USERNAME=tuemail@gmail.com
-CMS_SMTP_PASSWORD=tuclave
-CMS_SMTP_USE_TLS=YES
-CMS_SMTP_USE_STARTTLS=YES
-CMS_SMTP_REWRITE_DOMAIN=gmail.com
-CMS_SMTP_HOSTNAME=gmail.com
-CMS_SMTP_FROM_LINE_OVERRIDE=YES
+echo "=== CONFIGURANDO ENTORNO ==="
+if [ ! -f config.env ]; then
+    cp config.env.template config.env
+    # Reemplazar valores por defecto
+    sed -i 's/CMS_PORT=8080/CMS_PORT=8080/' config.env
+    sed -i 's/MYSQL_PASSWORD=/MYSQL_PASSWORD=MiClaveSegura123/' config.env
+    sed -i 's/MYSQL_ROOT_PASSWORD=/MYSQL_ROOT_PASSWORD=RootClave321/' config.env
+    sed -i 's/CMS_ADMIN_PASSWORD=/CMS_ADMIN_PASSWORD=admin123/' config.env
+fi
 
-#########################################
-#       OTRAS OPCIONES (por defecto)    #
-#########################################
+echo "=== LEVANTANDO SERVICIOS CON DOCKER ==="
+docker-compose up -d
 
-# Desactivar reportes anónimos (opcional)
-# CMS_USAGE_REPORT=false
+echo "=== INSTALACIÓN FINALIZADA ==="
+IP=$(hostname -I | awk '{print $1}')
+echo "Accede a Xibo CMS en: http://$IP:8080"
+echo "Usuario: xibo_admin"
+echo "Contraseña: admin123 (puedes cambiarla luego)"
