@@ -1,0 +1,40 @@
+#########################################
+#        CONFIGURACIÓN DE MYSQL         #
+#########################################
+
+# Contraseña del usuario CMS para MySQL
+MYSQL_PASSWORD=ClaveCms12345678
+
+# Contraseña root de MySQL
+MYSQL_ROOT_PASSWORD=RootClave12345678
+
+#########################################
+#        CONFIGURACIÓN DEL CMS          #
+#########################################
+
+# Contraseña del usuario administrador de Xibo (usuario: xibo_admin)
+CMS_ADMIN_PASSWORD=Admin12345678
+
+# Puerto en el que Xibo CMS se expondrá
+CMS_PORT=8080
+
+#########################################
+#    CONFIGURACIÓN DE CORREO (SMTP)     #
+#########################################
+# Para pruebas locales no es necesario.
+# Si quieres habilitarlo, edita estos valores.
+CMS_SMTP_SERVER=smtp.gmail.com:587
+CMS_SMTP_USERNAME=tuemail@gmail.com
+CMS_SMTP_PASSWORD=tuclave
+CMS_SMTP_USE_TLS=YES
+CMS_SMTP_USE_STARTTLS=YES
+CMS_SMTP_REWRITE_DOMAIN=gmail.com
+CMS_SMTP_HOSTNAME=gmail.com
+CMS_SMTP_FROM_LINE_OVERRIDE=YES
+
+#########################################
+#       OTRAS OPCIONES (por defecto)    #
+#########################################
+
+# Desactivar reportes anónimos (opcional)
+# CMS_USAGE_REPORT=false
