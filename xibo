@@ -1,40 +1,47 @@
-#########################################
-#        CONFIGURACIÓN DE MYSQL         #
-#########################################
+#!/bin/bash
+set -e
 
-# Contraseña del usuario CMS para MySQL
-MYSQL_PASSWORD=ClaveCms12345678
+echo "🚀 Instalador automático de Xibo CMS en Ubuntu 24.04"
+echo "===================================================="
 
-# Contraseña root de MySQL
-MYSQL_ROOT_PASSWORD=RootClave12345678
+# 1. Actualizar sistema
+sudo apt update && sudo apt upgrade -y
 
-#########################################
-#        CONFIGURACIÓN DEL CMS          #
-#########################################
+# 2. Instalar dependencias
+sudo apt install -y docker.io docker-compose git ufw
 
-# Contraseña del usuario administrador de Xibo (usuario: xibo_admin)
-CMS_ADMIN_PASSWORD=Admin12345678
+# 3. Habilitar y arrancar Docker
+sudo systemctl enable docker
+sudo systemctl start docker
 
-# Puerto en el que Xibo CMS se expondrá
-CMS_PORT=8080
+# 4. Descargar Xibo Docker si no existe
+if [ ! -d "$HOME/xibo-docker" ]; then
+    echo "📥 Descargando repositorio de Xibo..."
+    git clone https://github.com/xibosignage/xibo-docker.git ~/xibo-docker
+fi
 
-#########################################
-#    CONFIGURACIÓN DE CORREO (SMTP)     #
-#########################################
-# Para pruebas locales no es necesario.
-# Si quieres habilitarlo, edita estos valores.
-CMS_SMTP_SERVER=smtp.gmail.com:587
-CMS_SMTP_USERNAME=tuemail@gmail.com
-CMS_SMTP_PASSWORD=tuclave
-CMS_SMTP_USE_TLS=YES
-CMS_SMTP_USE_STARTTLS=YES
-CMS_SMTP_REWRITE_DOMAIN=gmail.com
-CMS_SMTP_HOSTNAME=gmail.com
-CMS_SMTP_FROM_LINE_OVERRIDE=YES
+cd ~/xibo-docker
 
-#########################################
-#       OTRAS OPCIONES (por defecto)    #
-#########################################
+# 5. Configuración inicial (si no existe)
+if [ ! -f "config.env" ]; then
+    echo "⚙️  Creando archivo config.env..."
+    cp config.env.template config.env
+    # Aquí podrías modificar valores predeterminados, por ejemplo:
+    sed -i 's/WEB_PORT=8080/WEB_PORT=80/' config.env
+fi
 
-# Desactivar reportes anónimos (opcional)
-# CMS_USAGE_REPORT=false
+# 6. Levantar los contenedores
+echo "🐳 Iniciando contenedores de Xibo..."
+docker-compose up -d
+
+# 7. Configurar firewall
+echo "🛡️ Configurando firewall..."
+sudo ufw allow 80/tcp
+sudo ufw allow 9505/tcp
+sudo ufw reload
+
+echo ""
+echo "✅ Instalación completada."
+echo "Puedes acceder a Xibo en: http://$(hostname -I | awk '{print $1}')"
+echo "Usuario inicial: xibo_admin"
+echo "Contraseña inicial: xibo_admin"
